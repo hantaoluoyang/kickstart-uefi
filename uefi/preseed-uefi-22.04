@@ -1,0 +1,160 @@
+# Enable automatic installation  
+d-i auto-install/enable boolean true  
+
+# Set debconf priority to critical, so no prompts during installation  
+d-i debconf/priority select critical
+
+#### Partitioning  
+# Set the disk to use for automatic partitioning to /dev/sda  
+d-i partman-auto/disk string /dev/sda
+
+# Use regular partitioning scheme  
+d-i partman-auto/method string regular 
+
+# Remove LVM if present on the disk  
+d-i partman-lvm/device_remove_lvm boolean true
+
+# Remove RAID if present on the disk  
+d-i partman-md/device_remove_md boolean true
+
+# Select the partitioning recipe to use: boot-root-var  
+d-i partman-auto/choose_recipe select boot-root-var
+
+# Confirm deletion of existing partitions (WARNING: this will delete all data on the disk)  
+d-i partman-md/confirm boolean true
+
+# Confirm writing a new label to the partitions  
+d-i partman-partitioning/confirm_write_new_label boolean true 
+
+# Finish the partition selection  
+d-i partman/choose_partition select finish
+
+# Confirm the partitioning operation  
+d-i partman/confirm boolean true
+
+# Confirm not to overwrite existing partitions (usually used with the above to ensure no accidental deletion)  
+d-i partman/confirm_nooverwrite boolean true
+
+# Define a custom partitioning recipe
+d-i partman-auto/expert_recipe string                     \
+  boot-root-var ::                                        \
+          1024 1 1024 fat32                             \
+                  $primary{ } $bootable{ }                \
+                  method{ efi } format{ }              \
+                  mountpoint{ /boot/efi }                     \
+          .                                               \
+          16384 2 16384 linux-swap                   \
+                  $primary{ }                        \
+                  method{ swap } format{ }                \
+          .                                              \
+          10240 3 -1 ext4                            \
+                  $primary{ }                            \
+                  method{ format } format{ }              \
+                  use_filesystem{ } filesystem{ ext4 }    \
+                  mountpoint{ / }                         \
+          .
+#This partition scheme is divided into 3 partitions, each ending with a period, using "/boot/efi" partition as an example: "1024 1 1024 ext4". The first "1024" indicates the minimum partition size in MB. "1" represents the priority, where higher numbers indicate higher priority for determining the partitioning order. The second "1024" indicates the maximum partition size in MB. If the value is "-1", it means the partition will expand to use all remaining available space. "ext4" specifies the file system type, indicating that this partition will use the ext4 file system. These are the parameters used.)：1 $primary{ }:Primary partition,2 $bootable{ }:Bootable flag set,3 method{ efi }:This is the EFI system partition,4 format{ }:Confirm formatting,5mountpoint{ /boot/efi } :Mount partition to/boot/efi,6 method{ swap }:Use as swap,7  method{ format }:Format the partition,8  use_filesystem{ }:Use a filesystem,9 filesystem{ ext4 }:Use the ext4 filesystem,10 mountpoint{ / } :Mount point for this partition is /.
+
+#### Locale settings 
+# Set the locale for installation to en_US  
+d-i debian-installer/locale string en_US 
+
+# Set the language for installation to English  
+d-i debian-installer/language string en
+
+# Set the country for installation to United States  
+d-i debian-installer/country string US
+
+# Do not prompt for keyboard detection during installation  
+d-i console-setup/ask_detect boolean false
+
+# Set the console keyboard layout to US English  
+d-i console-setup/layoutcode string us
+
+# Select US English layout during keyboard configuration  
+d-i keyboard-configuration/layoutcode select us
+
+#### Network
+# Set the hostname to "ubuntu"  
+d-i netcfg/get_hostname string ubuntu
+
+# Set the domain name to "ubuntu"  
+d-i netcfg/get_domain string ubuntu
+
+# Automatically select the network interface to configure  
+d-i netcfg/choose_interface select auto 
+
+#### Clock
+# Set to automatically detect UTC  
+d-i clock-setup/utc-auto boolean true
+
+# Set to use UTC time  
+d-i clock-setup/utc boolean true  
+
+# Set the timezone to "Asia/Shanghai"  
+d-i time/zone string Asia/Shanghai
+
+# Enable NTP (Network Time Protocol)  
+d-i clock-setup/ntp boolean true
+
+#### Packages, Mirrors, Image
+# Select the default Linux kernel as "linux-server" (but the next line overrides this)  
+d-i base-installer/kernel/override-image string linux-server  
+
+# Actually select the kernel image as "linux-image-amd64"  
+d-i base-installer/kernel/override-image string linux-image-amd64  
+
+# Set the mirror country to "CN"  
+d-i mirror/country string CN  
+
+# Do not use an HTTP proxy  
+d-i mirror/http/proxy string  
+
+# Allow installation of restricted software  
+d-i apt-setup/restricted boolean true  
+
+# Allow installation of packages from the universe repository  
+d-i apt-setup/universe boolean true  
+
+# Do not install language support  
+d-i pkgsel/install-language-support boolean false
+
+#### Users
+# Set the user's full name to "ubuntu"  
+d-i passwd/user-fullname string ubuntu  
+
+# Set the username to "ubuntu"  
+d-i passwd/username string ubuntu  
+
+# Set the user's password (but the password is in encrypted form, using the predefined $default_password_crypted variable)  
+d-i passwd/user-password-crypted password $1$afasdf$3Z59fZWtyPR7eYDutEzK91  
+
+# Allow weak passwords  
+d-i user-setup/allow-password-weak boolean true
+
+
+####Grub
+# Use Grub2 instead of Grub legacy  
+d-i grub-installer/grub2_instead_of_grub_legacy boolean true  
+
+# Only install Debian's Grub configuration  
+d-i grub-installer/only_debian boolean true  
+
+# Do not display a "reboot in progress" message after installation (possibly for automated installations)  
+d-i finish-install/reboot_in_progress note
+
+#### Others
+# Enable the extras.ubuntu.com software source 
+d-i apt-setup/extras boolean true
+
+# Install the Ubuntu desktop environment 
+tasksel	tasksel/first multiselect ubuntu-desktop
+
+# Automatically reboot after installation
+ubiquity ubiquity/reboot boolean true
+
+# Disable downloading updates during the installation process using Ubiquity installer.
+ubiquity ubiquity/download_updates boolean false
+
+# Disable the installation of non-free software during the installation process using Ubiquity installer.
+ubiquity ubiquity/use_nonfree boolean false

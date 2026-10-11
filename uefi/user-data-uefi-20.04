@@ -1,0 +1,80 @@
+#cloud-config
+autoinstall:
+  version: 1 # The version of the autoinstall configuration
+  apt:
+    disable_components: [] # List of components to disable (empty means none are disabled)
+    geoip: true # Enable geographic IP-based mirror selection
+    preserve_sources_list: false # Do not preserve the existing sources list
+    primary:
+    - arches:
+      - amd64 # Use this mirror for the amd64 architecture
+      - i386 # Use this mirror for the i386 architecture
+      uri: https://mirrors.tuna.tsinghua.edu.cn/ubuntu # Primary mirror URI for amd64 and i386
+    - arches:
+      - default # Use this mirror for all other architectures
+      uri: https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports # Primary mirror URI for other architectures
+
+  identity:
+    hostname: ubuntu # Set the hostname of the machine
+    password: $1$afasdf$3Z59fZWtyPR7eYDutEzK91 # Encrypted default password
+    realname: ubuntu # Real name of the user
+    username: ubuntu # Username
+
+  kernel:
+    package: linux-generic # Kernel package to install
+  keyboard:
+    layout: us # Keyboard layout
+    toggle: null # No keyboard toggle option
+    variant: '' # No keyboard variant
+  locale: en_US.UTF-8 # Locale setting
+
+  ssh:
+    allow-pw: true # Allow password authentication for SSH
+    authorized-keys: [] # List of authorized SSH keys (empty means none)
+    install-server: true # Install the SSH server
+
+  storage:
+    config:
+#sata hdd or ssd
+    - {ptable: gpt,path: /dev/sda,wipe: superblock-recursive,preserve: false,name: '',grub_device: false,type: disk,id: disk-sda}
+# Configure the main SATA HDD/SSD with GPT partition table;1 ptable: Partition table type (gpt for GUID Partition Table);2  path: Path to the disk device;3 wipe: Whether to wipe existing data (superblock-recursive means recursively wipe superblocks);4 preserve: Whether to preserve existing partitions (false means do not preserve);5 name: Name of the partition (empty here);6 grub_device: Whether to use this as a GRUB boot device (true means yes);7 type: Device type (disk means a disk);8 id: Device ID
+
+
+
+    - {device: disk-sda,size: 1073741824, wipe: superblock, flag: boot, number: 1,preserve: false, grub_device: true, type: partition, id: partition-0} 
+# Create a 1GB /boot/efi partition;1 device: Associated disk device;2 size: Size of the partition (in bytes);3 wipe: Whether to wipe existing data (superblock means wipe the superblock);4 flag: Partition flag (empty here); 5 number: Partition number; 6 preserve: Whether to preserve existing partitions (false means do not preserve);7 grub_device: Whether to use this as a GRUB boot device (false means no);8 type: Device type (partition means a partition);9 id: Device ID
+
+    - {device: disk-sda, size: 17179869184, wipe: superblock, flag: swap, number: 2,preserve: false, grub_device: false, type: partition, id: partition-1}
+# Create a 16GB swap partition;1 device: Associated disk device;2 size: Size of the partition (in bytes);3 wipe: Whether to wipe existing data (superblock means wipe the superblock);4 flag: Partition flag (swap means a swap partition);5 number: Partition number;6 preserve: Whether to preserve existing partitions (false means do not preserve);7 grub_device: Whether to use this as a GRUB boot device (false means no)8 type: Device type (partition means a partition);9 id: Device ID
+
+    - {device: disk-sda,size: -1,wipe: superblock,flag: '',number: 3,preserve: false,grub_device: false,type: partition,id: partition-2}
+# Use remaining space for the root partition;1 device: Associated disk device;2 size: Size of the partition (-1 means use the remaining space);3 wipe: Whether to wipe existing data (superblock means wipe the superblock);4 flag: Partition flag (empty here);5 number: Partition number;6 preserve: Whether to preserve existing partitions (false means do not preserve);7 grub_device: Whether to use this as a GRUB boot device (false means no);8 type: Device type (partition means a partition);9 id: Device ID
+
+   
+
+    - {fstype: fat32,volume: partition-0,preserve: false,type: format,id: format-0} 
+# Format partition 1 as fat32;1 fstype: File system type (xfs for XFS file system);2 volume: Associated partition ID;3 preserve: Whether to preserve existing data (false means do not preserve);4 type: Type (format means format the partition);5 id: Device ID
+
+    - {fstype: swap, volume: partition-1, preserve: false, type: format, id: format-1}
+# Format partition 2 as swap;1 fstype: File system type (swap for swap partition);2 volume: Associated partition ID;3 preserve: Whether to preserve existing data (false means do not preserve);4 type: Type (format means format the partition);5 id: Device ID
+
+    - {fstype: xfs,volume: partition-2,preserve: false,type: format,id: format-2}
+# Format partition 3 as XFS;1 fstype: File system type (xfs for XFS file system);2 volume: Associated partition ID;3 preserve: Whether to preserve existing data (false means do not preserve);4 type: Type (format means format the partition);5 id: Device ID
+
+  
+
+    - {path: /boot/efi,device: format-0,type: mount,id: mount-0}
+# Mount /boot partition;1 path: Mount point path;2 device: Associated formatted device ID;3 type: Type (mount means mount the partition);4 id: Device ID
+
+    - {path: '', device: format-1, type: mount, id: mount-1}
+# Mount swap partition;1 path: Mount point path (swap partition has no path);2 device: Associated formatted device ID;3 type: Type (mount means mount the partition);4 id: Device ID
+
+    - {path: /,device: format-2,type: mount,id: mount-2} 
+# Mount root partition;1 path: Mount point path;2 device: Associated formatted device ID;3 type: Type (mount means mount the partition);4 id: Device ID
+
+  updates: security # Install security updates
+ # Late commands section
+  late-commands:
+    - curtin in-target --target=/target -- grub-install /dev/sda # Run the grub-install command within the target system to install GRUB on /dev/sda
+    - curtin in-target --target=/target -- update-grub # Update the GRUB configuration within the target system
+    - curtin in-target --target=/target -- reboot # Reboot the system after installation is complete
